@@ -48,5 +48,32 @@ nav ul li a {
   color: #091121
 }
 a:hover{
-  color: #13409E 
+  color: #13409E
+}
+
+.one-third {
+  width: 80%;
+  float: left;
+  padding:60px;
+  text-align: center;
+}
+/**
+.icon-wrap {
+  margin: 0 auto;
+  width: 120px;
+  height: 120px;
+  background-color: #A61513;
+  border-radius: 125px;
+  text-align: center;
+  margin-top: 3%;
+}
+**/
+.icon-wrap i {
+  text-align: center;
+  color: #ffffff;
+  font-size: 450%;
+  padding: 20%;
+}
+#tema {
+  margin: 2px;
 }
