@@ -1,0 +1,139 @@
+//==========================================================================================================================
+//Funciones que vamos a utilizar para crear nuestra aplicacion (Propio de Relacionar)
+//==========================================================================================================================
+
+//En esta variable almacenaremos el intervalo de tiempo
+var idInterval = 0;
+
+//Creamos los elementos necesarios para la aplicacion de Relacionar
+
+	function crear()
+	{	
+		var divCabecero = $("<div>",
+		{
+			id: "cabecero"
+		});
+		
+		var divIndicador = $("<div>",
+		{
+			id: "indicador"
+		});
+		$(divCabecero).append(divIndicador);
+	
+		var divPista = $("<div>",
+		{
+			id: "pista"
+		});
+		$(divCabecero).append(divPista);
+		
+		var divAciertoError = $("<div>",
+		{
+			id: "aciertoError"
+		});
+		$(divCabecero).append(divAciertoError);
+		$('#lienzo').append(divCabecero);
+		
+		var divContentElementos = $("<div>",
+		{
+			id: "contentElementos"
+		});
+		$('#lienzo').append(divContentElementos);
+			
+		cargar();
+	}
+	
+
+//Cargamos los elementos de manera aleatoria sobre las cajas creadas
+	
+	function cargar()
+	{	
+		//Si es de tipo grupo, mostramos un grupo al azar y el indicador con los elementos necesarios
+		if(forma == "grupo")
+		{
+			contadorElementos = 0;
+			
+			var aleatorio = Math.floor((Math.random()*100));
+			while(aleatorio > grupos.length-1)
+			{
+				aleatorio = Math.floor((Math.random()*100));
+			}
+			$("#pista").html(grupos[aleatorio]["texto"]);
+			
+			idGrupoActivo = grupos[aleatorio]["id"]
+			
+			for(i=0;i<elementos.length;i++)
+			{
+				if(elementos[i]["id"] == grupos[aleatorio]["id"])
+				{
+					contadorElementos++;
+				}
+			}
+			$("#indicador").html("0/"+contadorElementos);
+		}
+		//Si es de tipo relacionar, ocultamos la pista y el indicador hasta que se pulse un elemento
+		else if(forma == "relacionar")
+		{
+			$("#indicador").hide();
+			$("#pista").hide();
+		}
+		
+		//Colocamos todos los elementos de todos los grupos de manera aleatoria, y vamos creando las cajas
+		var colocadas = [];
+		var aceptar = 0;
+		for(i=0;i<elementos.length;i++)
+		{
+			if(i<10) var ix = "0"+i;
+			else var ix = i;
+					
+			while(aceptar == 0)
+			{
+				posicion = Math.floor((Math.random()*100));
+				if(posicion < elementos.length)
+				{
+					aceptar=1;
+					for(k=0;k<colocadas.length;k++)
+					{
+						if(colocadas[k] == posicion)
+						{
+							aceptar=0;
+						}
+					}
+				}
+			}
+			colocadas[i] = posicion;
+			aceptar=0;
+			
+			if(posicion<10) var posicionx = "0"+posicion;
+			else var posicionx = posicion;
+			
+			//Creamos una caja para cada uno de los elementos		
+			var divElemento = $("<div>",
+			{
+				id: "elemento"+posicionx,
+				"class": "elementos"
+			});
+			$('#contentElementos').append(divElemento);
+			$("#elemento"+posicionx).html(elementos[posicion]["contenido"]);	
+		}
+		
+		//Definimos los eventos necesarios, al clickar sobre los elementos lanzamos la funcion que lo controlará
+		$(".elementos").click(gestionEleccion);
+		
+		//Definimos el numero de columnas y antivamos la libreria de ajuste de tamaños
+		var anchura = $("#contentElementos").width();
+		var col = 0;
+		if(anchura > 650) {
+			col = 4;
+		} else if(anchura > 500) {
+			col = 3;
+		} else if(anchura > 290) {
+			col = 2;
+		} else {
+			col = 1;
+		}
+		
+		$('#contentElementos').BlocksIt({
+		numOfCol: col,
+		blockElement: '.elementos'
+		});
+	}

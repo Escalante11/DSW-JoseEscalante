@@ -1,0 +1,382 @@
+//==========================================================================================================================
+//Funciones que vamos a utilizar cuando el usuario comienza a interactuar con esta aplicacion (Propio de Relacionar)
+//==========================================================================================================================
+
+//Oculta la parte de presentación de instrucciones y accede a la aplicacion
+
+var respuestasSecuencia = [];
+
+    function comenzar()
+    {	
+     	$('#contentPreActividad').hide();
+     	$('#contentAct').css('top',0);
+		
+		//Lanzamos el contador de tiempo
+		idInterval = setInterval(contador,1000);
+   	}
+   	
+//Redimensionamos la aplicacion al cambiar de tamaño la pantalla
+
+	function redimensionar()
+	{	
+		//Reinicializamos la descripción Inicial de Usuario
+		cargarDescripcionInicio();
+		
+		//Redimensionamos el numero de columnas y antivamos la libreria de ajuste de tamaños
+		var anchura = $("#contentElementos").width();
+		var col = 0;
+		if(anchura > 650) {
+			col = 4;
+		} else if(anchura > 500) {
+			col = 3;
+		} else if(anchura > 290) {
+			col = 2;
+		} else {
+			col = 1;
+		}
+		
+		$('#contentElementos').BlocksIt({
+			numOfCol: col,
+			blockElement: '.elementos'
+		});
+	}
+
+//Gestionamos los elementos seleccionados
+//Esta variable almacena los elementos que estan seleccionados en cada momento
+var cacheElementos = [];
+
+	function gestionEleccion(e)
+	{
+		//Ocultamos el div que muestra error o acierto de grupo por si todavia esta activo
+		$("#aciertoError").removeClass("respuestaBien").removeClass("respuestaMal").hide();
+		//Paramos el timeout que oculta dicho div
+		clearTimeout(idTimeoutE);
+		//Mostramos el indicador y pista por si hemos parado el timeout y no se han vuelto a mostrar
+		if(forma == "grupo")
+		{
+			$("#indicador").show();
+			$("#pista").show();
+			$("#indicador").html(cacheElementos.length+"/"+contadorElementos);
+		}
+		
+		//Tenemos los datos del elemento clickado
+		id = e.target.getAttribute('id');
+		cadenaId = id.substring(8,10);
+		numId = parseInt(cadenaId,10);
+		
+		//Si el elemento esta seleccionado lo deseleccionamos y borramos del array cache, sino lo seleccionamos y lo añadimos al array cache 
+		if($("#elemento"+cadenaId).hasClass("seleccionado"))
+		{
+			for(j=0;j<cacheElementos.length;j++)
+			{
+				if(cacheElementos[j] == numId)
+				{
+					cacheElementos.splice(j,1);
+				}
+			}
+			$("#elemento"+cadenaId).removeClass("seleccionado");
+		}
+		else
+		{
+			$("#elemento"+cadenaId).addClass("seleccionado");
+			cacheElementos[cacheElementos.length] = numId;
+		}
+		
+		//Si es de tipo grupo, actualizamos el indicador
+		if(forma == "grupo")
+		{
+			$("#indicador").html(cacheElementos.length+"/"+contadorElementos);
+		}
+		//Si es de tipo relacionar, si es el primero, mostramos la pista y actualizamos el indicador, sino actualizamos el indicador
+		else if(forma == "relacionar")
+		{
+			if($("#indicador").css("display") == "none")
+			{
+				contadorElementos = 0;
+			
+				var k = elementos[numId]["id"];
+				idGrupoActivo = k;
+				$("#pista").html(grupos[k-1]["texto"]);
+			
+				for(i=0;i<elementos.length;i++)
+				{
+					if(elementos[i]["id"] == grupos[k-1]["id"])
+					{
+						contadorElementos++;
+					}
+				}
+				$("#indicador").show();
+				if(grupos[k-1]["texto"] != "") $("#pista").show();
+			}
+			$("#indicador").html(cacheElementos.length+"/"+contadorElementos);
+			
+			//Si no hay elementos seleccionados y es de tipo relacionar, ocultamos la pista y el indicador
+			if(cacheElementos.length == 0)
+			{
+				$("#indicador").hide();
+				$("#pista").hide();
+			}
+		}
+		
+		//Si tenemos el numero de elementos seleccionado igual a los que corresponden a dicho grupo, comprobamos si esta bien
+		if(cacheElementos.length == contadorElementos)
+		{
+			compruebaElementos();
+		}
+	}
+
+//Conprobamos la respuesta
+//Esta variable contiene el identificador del timeout que oculta el div de correccion
+var idTimeoutE = 0;
+var gestionGrupos = [];
+
+	function compruebaElementos()
+	{
+		//Hacemos la variable que controla si hay error 0
+		var error = 0;
+		var respuestaDada = {};
+		respuestaDada['a'] = '';
+		respuestaDada['i'] = idGrupoActivo;
+		respuestaDada['s'] = 1;
+		//Si todos los elementos seleccionados pertenecen al grupo activo no hay error, sino si
+		for(i=0;i<cacheElementos.length;i++)
+		{
+			if (respuestaDada['a'] != '') {
+				respuestaDada['a'] += ' - ';
+			}
+			respuestaDada['a'] += elementos[cacheElementos[i]]['contenido'];
+			if(elementos[cacheElementos[i]]["id"] != idGrupoActivo) {
+				error = 1;
+				respuestaDada['s'] = 0;
+			}
+		}
+		respuestasSecuencia.push(respuestaDada);
+		//Borramos la cache de elementos y ocultamos la pista y el indicador para mostrar el error o el acierto
+		cacheElementos = [];
+		$("#indicador").hide();
+		$("#pista").hide();
+		//Si no hay error
+		if(error == 0)
+		{
+			//Controlamos la correccion de cada grupo
+			gestionGrupos[idGrupoActivo] = 1;
+			//Mostramos el mensaje de acierto, y lo ocultamos a los 2 segundos
+            grupos[idGrupoActivo-1]["correcto"]=1;
+			$("#aciertoError").html(txtTituloRespuestaCorrecta+"<br>"+txtGrupoCorrecto).addClass("respuestaBien").show();
+			idTimeoutE = setTimeout(function(){$("#aciertoError").removeClass("respuestaBien").hide();},3000);
+			//Convertimos los elementos seleccionados en correctos
+			$(".seleccionado").addClass("bien");
+			$(".seleccionado").unbind("click");
+			$(".elementos").removeClass("seleccionado");
+			//Si es de tipo grupo, mostramos la pantalla final de correcto
+			if(forma == "grupo")
+			{
+				$(".elementos").unbind("click");
+				cargarPantallaFinal('OK',getDatosRespuestas(1));
+                
+			} 
+			//Si es de tipo relacionar, comprobamos si es el ultimo grupo, y si es asi mostramos la pantalla final de acierto
+			else if(forma == "relacionar")
+			{
+				var final = 1;
+			
+				for(i=0;i<elementos.length;i++)
+				{
+					if(i<10) var ix = "0"+i;
+					else var ix = i;
+			
+					if(!$("#elemento"+ix).hasClass("bien"))
+					{
+						final = 0;
+						break;
+					}
+				}
+				if(final == 1)
+				{
+					$(".elementos").unbind("click");
+					//cargarPantallaFinal('OK',getDatosRespuestas(1));
+                    for(i=0;i<grupos.length;i++){
+	                if(grupos[i]["correcto"]==1){
+	                    respuestaXAPI="";
+	                    contador=0;
+	                    for(j=0;j<elementos.length;j++){
+	                        if(elementos[j]["id"]==i+1){
+	                            if(contador==0){
+	                               respuestaXAPI+=elementos[j]["contenido"];
+	                            }
+	                            else{
+	                                respuestaXAPI+=" - "+elementos[j]["contenido"];
+	                            }
+	                            contador++;
+	                            
+	                        }
+	                       
+	                    }
+	                    if(grupos[i]["texto"]==""){
+	                    	textoGrupo=respuestaXAPI
+	                    }
+	                    else{
+	                    	textoGrupo=grupos[i]["texto"]
+	                    }
+	                }
+	                
+	              }
+                cargarPantallaFinal('OK',getDatosRespuestas(1));
+			}
+		}
+			
+		}
+		//Si hay error
+		else
+		{
+			//Mostramos el mensaje de error
+			$("#aciertoError").html(txtTituloRespuestaIncorrecta+"<br>"+txtRespuestaIncorrecta).addClass("respuestaMal").show();
+			//A los 2 segundos lo ocultamos, y si es de tipo grupo volvemos a mostrar la pista y el indicador
+			idTimeoutE = setTimeout(function(){
+				$("#aciertoError").removeClass("respuestaMal").hide();
+				if(forma == "grupo")
+				{
+					$("#indicador").show();
+					$("#pista").show();
+					$("#indicador").html(cacheElementos.length+"/"+contadorElementos);
+				}
+			},3000);
+			elementosSeleccionados=""
+			seleccionadosRespuesta=$(".seleccionado")
+			for(j=0;j<seleccionadosRespuesta.length;j++){
+				if(elementosSeleccionados==""){
+						elementosSeleccionados+=seleccionadosRespuesta[j].innerText
+					}
+					else{
+						elementosSeleccionados+=" - "+seleccionadosRespuesta[j].innerText
+					}
+			}
+			PrimerElementoGrupo=$(".seleccionado")[0].innerText
+			for(j=0;j<elementos.length;j++){
+				if(elementos[j].contenido==PrimerElementoGrupo){
+					idGrupo=elementos[j].id
+				}
+			}
+	
+			elementosGrupoSeleccionado="";
+			for(j=0;j<elementos.length;j++){
+				if(elementos[j].id==idGrupo){
+					if(elementosGrupoSeleccionado==""){
+						elementosGrupoSeleccionado+=elementos[j].contenido
+					}
+					else{
+						elementosGrupoSeleccionado+=" - "+elementos[j].contenido
+					}
+				}
+			}
+			if(grupos[idGrupo-1]["texto"]!=""){
+	                    	elementosGrupoSeleccionado=grupos[idGrupo-1]["texto"]
+	                    }
+			//Convertimos los elementos seleccionados en incorrectos, y los desactivamos al medio segundo
+			$(".seleccionado").addClass("mal");
+			setTimeout(function(){$(".mal").removeClass("mal");},500);
+			$(".elementos").removeClass("seleccionado");
+
+			//Actualizamos intentos y puntos
+			actualizarIntentos();
+			actualizaPuntos();
+		}
+	}
+	
+//Actualizamos los intentos
+	
+	function actualizarIntentos()
+	{
+		var cadenaIntentos = $('#numIntentos').text();
+		var pos = cadenaIntentos.indexOf("/");
+		var numeroIntentos = parseInt(cadenaIntentos.substring(0,pos+1));
+		if(numeroIntentos <= numero_intentos-1)
+		{
+			numeroIntentos++;
+			cadenaIntentos = numeroIntentos+"<sup>/"+numero_intentos+"</sup>";
+			$('#numIntentos').html(cadenaIntentos);
+			$('#cajaIntentos').addClass('alertLuz');
+			setTimeout(function(){$('#cajaIntentos').removeClass('alertLuz');},1000);
+		}
+		
+		if(numeroIntentos == numero_intentos)
+		{
+			$(".elementos").unbind("click");
+			puntosReg = 0;
+			cargarPantallaFinal('intentos',getDatosRespuestas(0));	
+			$("#numPuntos").html("0");
+		}
+	}
+	
+//Actualizar puntos en funcion de los fallos
+var puntosReg = 100;
+
+	function actualizaPuntos()
+	{
+		var actuales = parseInt(puntosReg);
+		var descuento = puntos_resta;
+		var cantidadActual =  actuales - descuento;
+		if(cantidadActual < 0) cantidadActual = 0;
+		puntosReg = parseInt(cantidadActual);
+		$("#numPuntos").html(parseInt(cantidadActual));
+	}
+	
+//Completamos la pantalla final con la corrección de la palabra
+
+	function completarPantallaFinal()
+	{		
+		var cadena = "";
+		for(i=0;i<grupos.length;i++)
+		{	
+			var claseColor = "";
+			if(gestionGrupos[i+1] == 1) claseColor = "correcto";					
+			
+			idGrupoF = grupos[i]["id"];
+			cadena += "<div id='grupoFinal"+i+"' class='gruposFinal "+claseColor+"'>";
+			
+			if(grupos[i]["texto"] == "") var titulo = txtGrupo + " " + (i+1);
+			else var titulo = grupos[i]["texto"];
+			
+			cadena += "<div id='tituloGrupoFinal"+i+"' class='tituloGruposFinal'>"+titulo+"</div>";
+			
+			for(j=0;j<elementos.length;j++)
+			{	
+				if(elementos[j]["id"] == idGrupoF)
+				{
+					cadena += "<div id='elementoFinal"+i+"_"+j+"' class='elementosFinal'>"+elementos[j]["contenido"]+"</div>";
+				}
+			}
+			
+			cadena += "</div>";
+		}
+		$("#correccion").html(cadena);
+	}
+
+	function getDatosRespuestas(s) {
+		var datos = {};
+		datos['m'] = {};
+		datos['m']['s'] = s;
+		datos['r'] = respuestasSecuencia;
+		return datos;
+	}
+
+	function actualizaPuntosFinal(tipoAlerta) {
+		if (tipoAlerta == "tiempo") {
+			var gruposCorrectos = 0;
+			gestionGrupos.forEach(function callback(valor) {
+				if (valor === 1) {
+					gruposCorrectos++;
+				}
+			});		
+            if (gruposCorrectos == 0) {
+                puntosReg = 0;
+            } else {
+                var restantes = grupos.length - gruposCorrectos;
+                var puntosRestar = parseInt(100 / grupos.length);
+                puntosReg -= restantes * puntosRestar;
+                if (puntosReg <= 0) {
+                    puntosReg = 0;
+                }
+			}
+        }
+	}
